@@ -116,7 +116,7 @@ EOL
 # Fonction pour déployer WordPress avec Ansible
 function Deploy-WordPress-With-Ansible {
     echo "Déploiement de WordPress avec Ansible..."
-    ansible-playbook -i inventory.ini wordpress6.yml -v
+    ansible-playbook -i inventory.ini wordpress.yml -v
     #$vari = Get-VM-IPs
     #ansible-playbook -e $vari -i inventory.ini wordpress.yml -v
     #ansible-playbook -i inventory.ini -e "dbhost=$vari" -v wordpress.yml
