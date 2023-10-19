@@ -4,18 +4,7 @@
     ansible_ssh_user: "mansourcgi"  # Remplacez par votre nom d'utilisateur SSH
     ansible_ssh_private_key_file: "~/.ssh/id_rsa"  # Remplacez par le chemin de votre clé privée
     wordpress_ip: "{{ hostvars[inventory_hostname].ansible_host }}"    
-    #db_host: 34.38.12.170
-
-
-
-
-####################################
-
-
-
-
-
-
+    
 
 
 
@@ -79,30 +68,6 @@
       become: yes
   
 
-    #- name: Create Ansible Temporary Directory
-    #  ansible.builtin.file:
-    #    path: "~/ansible_tmp"  # Spécifiez le chemin du répertoire temporaire
-    #    state: directory
-    #  delegate_to: localhost
-    #  become: yes
-    #  become_user: root
-    #  vars:
-    #    ansible_become_password: "1234"
-      #ansible_ssh_private_key_file: "~/.ssh/id_rsa" 
-
-#################### LE MATTER#####################""
-
-
-
-    #- name: Create MariaDB Database for WordPress
-    #  community.mysql.mysql_db:
-    #    login_unix_socket: /var/run/mysqld/mysqld.sock
-    #    name: wordpress_db
-    #    state: present
-    #  become: yes
-    #  become_user: root
-    #  vars:
-    #    ansible_become_password: "root"
 
     - name: Create MariaDB Database for WordPress
       community.mysql.mysql_db:
@@ -117,50 +82,6 @@
 
 
 
-
-
-#############"FIN MATTER#######################################"
-
-
-
-
-
-      #become_user: mysql
-      #environment:
-       # ANSIBLE_TMP_DIR: "~/ansible_tmp"   
-########### NEW MATTER ################################""
-    #- name: Create MariaDB User for WordPress
-    #  community.mysql.mysql_user:
-    #    name: root
-    #    password: root
-    #    priv: "wordpress_db.*:ALL"
-    #    host: localhost
-    #    state: present
-
-    #- name: Create MariaDB User for WordPress
-    #  community.mysql.mysql_user:
-    #    name: wordpress_user
-    #    #name: root
-    #    host: localhost
-    #    password: "root"
-    #    priv: '*.*:ALL'
-    #    state: present
-    #  become: yes
-    #  become_user: root
-
-    #- name: Create MariaDB User for WordPress
-    #  community.mysql.mysql_user:
-    #    name: myuser 
-    #    password : root
-    #    host: 34.140.40.189
-    #    #login_unix_socket: /var/run/mysqld/mysqld.sock
-    #    #login_user: "root"
-    #    #login_password: "root"
-    #    #priv: '*.*:ALL'
-    #    priv: "wordpress_db.*:ALL" 
-    #    state: present
-    #  #become: yes
-    #  #become_user: root
 
     - name: Créer un utilisateur MySQL
       mysql_user:
@@ -177,9 +98,6 @@
         state: restarted
 
 
-########"END NEW mATTER"##########################################
-
-
   handlers:
     - name: Reload MariaDB Configuration
       service:
@@ -187,10 +105,6 @@
         state: reloaded
 
 
-
-
-
-##########################
 
 - hosts: wordpress
   become: yes
@@ -237,7 +151,7 @@
       stat :
         path : /var/www/html/wordpress
       register : verif_wordpress
-    # Download Wordpress (test)
+   
 
     - name: Telecharger Wordpress
       get_url:
@@ -264,31 +178,5 @@
         group: www-data
         mode: "0755"
 
-    #- name: Configure WordPress database
-    #  command: >
-    #    wp core config
-    #    --dbname=wordpress_db
-    #    --dbuser=myuser
-    #    --dbpass=root         
-    #    --dbhost= 34.34.188.169        
-    #    --path=/var/www/html/wordpress
-    #  args:
-    #    creates: /var/www/html/wordpress/wp-config.php
-
-    #- name: Copier le modèle wp-config.php
-    #  template:
-    #    src: wp-config.php
-    #    dest: /var/www/html/wordpress/wp-config.php
-    #  become: yes    
-
-    #- name: Install WordPress
-    #  command: wp core install
-    #    --url=http://{{ ansible_default_ipv4.address }}
-    #    --title="My WordPress Site"
-    #    --admin_user=admin
-    #    --admin_password=adminpassword
-    #    --admin_email=admin@example.com
-    #    --path=/var/www/html/wordpress
-    #  args:
-    #    creates: /var/www/html/wordpress/wp-config.php
+  
 
