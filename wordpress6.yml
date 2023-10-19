@@ -1,0 +1,294 @@
+- hosts: wordpress
+  become: yes
+  vars:
+    ansible_ssh_user: "mansourcgi"  # Remplacez par votre nom d'utilisateur SSH
+    ansible_ssh_private_key_file: "~/.ssh/id_rsa"  # Remplacez par le chemin de votre clé privée
+    wordpress_ip: "{{ hostvars[inventory_hostname].ansible_host }}"    
+    #db_host: 34.38.12.170
+
+
+
+
+####################################
+
+
+
+
+
+
+
+
+
+- hosts: database
+  become: yes
+  vars:
+    ansible_ssh_user: "mansourcgi"  # Remplacez par votre nom d'utilisateur SSH pour la VM de la base de données
+    ansible_ssh_private_key_file: "~/.ssh/id_rsa"  # Remplacez par le chemin de votre clé privée
+
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install MariaDB Server
+      ansible.builtin.apt:
+        name: mariadb-server
+        state: present
+
+    - name: Démarrer le service MariaDB
+      service:
+        name: mysql
+        state: started
+        enabled: yes
+
+    - name: Secure MariaDB Installation
+      expect:
+        command: mysql_secure_installation
+        responses:
+          'Enter current password for root (enter for none): ': "\n"
+          'Set root password? [Y/n] ': "Y\n"
+          'New password: ': "root\n"
+          'Re-enter new password: ': "root\n"
+          'Remove anonymous users? [Y/n] ': "Y\n"
+          'Disallow root login remotely? [Y/n] ': "n\n"
+          'Remove test database and access to it? [Y/n] ': "Y\n"
+          'Reload privilege tables now? [Y/n] ': "Y\n"
+      async: 86400
+      poll: 0
+      ignore_errors: yes
+      register: mariadb_secure_output
+
+    - name: (DATABASE) Allow remote hosts to connect (Debian)
+      lineinfile:
+        path: /etc/mysql/mariadb.conf.d/50-server.cnf
+        backrefs: yes
+        regexp: '^bind-address'
+        line: 'bind-address            = 0.0.0.0'
+        state: present
+      notify: restart mariadb
+      when: ansible_os_family == "Debian"
+
+
+
+    - name: Install Python MySQL module
+      ansible.builtin.apt:
+        name:
+          - python3-pymysql  # Pour Python 3.X
+          - python-mysqldb  # Pour Python 2.X
+        state: present
+      become: yes
+  
+
+    #- name: Create Ansible Temporary Directory
+    #  ansible.builtin.file:
+    #    path: "~/ansible_tmp"  # Spécifiez le chemin du répertoire temporaire
+    #    state: directory
+    #  delegate_to: localhost
+    #  become: yes
+    #  become_user: root
+    #  vars:
+    #    ansible_become_password: "1234"
+      #ansible_ssh_private_key_file: "~/.ssh/id_rsa" 
+
+#################### LE MATTER#####################""
+
+
+
+    #- name: Create MariaDB Database for WordPress
+    #  community.mysql.mysql_db:
+    #    login_unix_socket: /var/run/mysqld/mysqld.sock
+    #    name: wordpress_db
+    #    state: present
+    #  become: yes
+    #  become_user: root
+    #  vars:
+    #    ansible_become_password: "root"
+
+    - name: Create MariaDB Database for WordPress
+      community.mysql.mysql_db:
+        name: wordpress_db
+        state: present
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+        login_host: '%' #0.0.0.0 #35.187.59.189 #wordpress_ip #34.140.40.189 #wordpress
+        login_user: root
+        login_password: "root"
+      become: yes
+      become_user: root
+
+
+
+
+
+#############"FIN MATTER#######################################"
+
+
+
+
+
+      #become_user: mysql
+      #environment:
+       # ANSIBLE_TMP_DIR: "~/ansible_tmp"   
+########### NEW MATTER ################################""
+    #- name: Create MariaDB User for WordPress
+    #  community.mysql.mysql_user:
+    #    name: root
+    #    password: root
+    #    priv: "wordpress_db.*:ALL"
+    #    host: localhost
+    #    state: present
+
+    #- name: Create MariaDB User for WordPress
+    #  community.mysql.mysql_user:
+    #    name: wordpress_user
+    #    #name: root
+    #    host: localhost
+    #    password: "root"
+    #    priv: '*.*:ALL'
+    #    state: present
+    #  become: yes
+    #  become_user: root
+
+    #- name: Create MariaDB User for WordPress
+    #  community.mysql.mysql_user:
+    #    name: myuser 
+    #    password : root
+    #    host: 34.140.40.189
+    #    #login_unix_socket: /var/run/mysqld/mysqld.sock
+    #    #login_user: "root"
+    #    #login_password: "root"
+    #    #priv: '*.*:ALL'
+    #    priv: "wordpress_db.*:ALL" 
+    #    state: present
+    #  #become: yes
+    #  #become_user: root
+
+    - name: Créer un utilisateur MySQL
+      mysql_user:
+        #login_password : root
+        name: myuser  # Remplacez par le nom de l'utilisateur MySQL
+        password: root  # Remplacez par le mot de passe de l'utilisateur MySQL
+        priv: "wordpress_db.*:ALL"  # Définissez les privilèges sur la base de données
+        host: '%' #0.0.0.0 #35.187.59.189 #wordpress_ip  #34.140.40.189 #wordpress
+        state: present  # Utilisez "absent" pour supprimer l'utilisateur MySQL
+
+    - name: Redémarrer le service MySQL
+      service:
+        name: mysql
+        state: restarted
+
+
+########"END NEW mATTER"##########################################
+
+
+  handlers:
+    - name: Reload MariaDB Configuration
+      service:
+        name: mysql
+        state: reloaded
+
+
+
+
+
+##########################
+
+- hosts: wordpress
+  become: yes
+  vars:
+    ansible_ssh_user: "mansourcgi"  # Remplacez par votre nom d'utilisateur SSH
+    ansible_ssh_private_key_file: "~/.ssh/id_rsa"  # Remplacez par le chemin de votre clé privée    
+    #db_host: 34.38.12.170
+
+
+  tasks:
+    - name: Déploiement de la clé publique SSH sur les VMs
+      authorized_key:
+        user: "{{ ansible_ssh_user }}"
+        state: present
+        #key: "{{ ansible_ssh_public_key }}"
+        key: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
+      when: lookup('file', '~/.ssh/id_rsa.pub') is file
+
+
+  tasks:  
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install Apache, PHP, and other dependencies
+      apt:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - apache2
+        - php
+        - libapache2-mod-php
+        - php-mysql
+
+    - name: Enable Apache modules
+      apache2_module:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - rewrite
+        - php7
+
+    - name: verif wordpress
+      stat :
+        path : /var/www/html/wordpress
+      register : verif_wordpress
+    # Download Wordpress (test)
+
+    - name: Telecharger Wordpress
+      get_url:
+        url : https://wordpress.org/latest.tar.gz
+        validate_certs: no
+        force: yes
+        dest : "/tmp/wordpress-latest.tar.gz"
+        #when: check_wordpress.stat.exists == False
+
+
+
+    - name: extract WordPress
+      unarchive:
+        src: "https://wordpress.org/latest.tar.gz"
+        dest: /var/www/html
+        remote_src: yes
+        creates: /var/www/html/wordpress
+      when : verif_wordpress.stat.exists == False
+
+    - name: Set ownership and permissions for WordPress
+      file:
+        path: /var/www/html/wordpress
+        owner: www-data
+        group: www-data
+        mode: "0755"
+
+    #- name: Configure WordPress database
+    #  command: >
+    #    wp core config
+    #    --dbname=wordpress_db
+    #    --dbuser=myuser
+    #    --dbpass=root         
+    #    --dbhost= 34.34.188.169        
+    #    --path=/var/www/html/wordpress
+    #  args:
+    #    creates: /var/www/html/wordpress/wp-config.php
+
+    #- name: Copier le modèle wp-config.php
+    #  template:
+    #    src: wp-config.php
+    #    dest: /var/www/html/wordpress/wp-config.php
+    #  become: yes    
+
+    #- name: Install WordPress
+    #  command: wp core install
+    #    --url=http://{{ ansible_default_ipv4.address }}
+    #    --title="My WordPress Site"
+    #    --admin_user=admin
+    #    --admin_password=adminpassword
+    #    --admin_email=admin@example.com
+    #    --path=/var/www/html/wordpress
+    #  args:
+    #    creates: /var/www/html/wordpress/wp-config.php
+
