@@ -4,7 +4,8 @@
 function Install-Terraform {
     if ! command -v terraform &>/dev/null; then
         echo "Installation de Terraform..."
-        # Ajoutez ici la logique d'installation de Terraform en fonction de votre système d'exploitation
+        sudo apt-get install terraform
+       
     fi
 }
 
@@ -12,7 +13,7 @@ function Install-Terraform {
 function Install-Ansible {
     if ! command -v ansible &>/dev/null; then
         echo "Installation de Ansible..."
-        # Ajoutez ici la logique d'installation de Ansible en fonction de votre système d'exploitation
+        pipx install --include-deps ansible
     fi
 }
 
